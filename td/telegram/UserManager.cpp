@@ -62,6 +62,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
+#include "td/telegram/PhotoSizeSource.h"
 #include "td/telegram/PremiumGiftOption.h"
 #include "td/telegram/PremiumGiftOption.hpp"
 #include "td/telegram/ReactionListType.h"
@@ -3736,6 +3737,17 @@ void UserManager::do_update_user_photo(User *u, UserId user_id,
   ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), user_id, u->access_hash, std::move(photo));
   if (td_->auth_manager_->is_bot()) {
     new_photo.minithumbnail.clear();
+  }
+  if (new_photo.is_personal && u->photo.is_personal && new_photo.id == u->photo.id &&
+      new_photo.has_animation == u->photo.has_animation && u->photo.small_file_id.is_valid()) {
+    // userProfilePhoto has only an undownloadable location of the personal photo, so keep the full photo locations
+    auto file_view = td_->file_manager_->get_file_view(u->photo.small_file_id);
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (full_remote_location != nullptr && full_remote_location->is_photo() &&
+        full_remote_location->get_source().get_type("do_update_user_photo") == PhotoSizeSource::Type::Thumbnail) {
+      new_photo.small_file_id = u->photo.small_file_id;
+      new_photo.big_file_id = u->photo.big_file_id;
+    }
   }
   do_update_user_photo(u, user_id, std::move(new_photo), true, source);
 }
