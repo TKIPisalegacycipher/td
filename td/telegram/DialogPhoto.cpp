@@ -166,7 +166,8 @@ DialogPhoto as_dialog_photo(FileManager *file_manager, DialogId dialog_id, int64
                             bool is_personal) {
   DialogPhoto result;
   static_cast<DialogPhoto &>(result) = as_fake_dialog_photo(photo, dialog_id, is_personal);
-  if (!result.small_file_id.is_valid()) {
+  if (!result.small_file_id.is_valid() || is_personal) {
+    // personal photos can't be downloaded through inputPeerPhotoFileLocation, so keep their photo locations
     return result;
   }
 

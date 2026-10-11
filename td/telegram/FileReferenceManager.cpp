@@ -16,6 +16,7 @@
 #include "td/telegram/CommunityManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DialogPhoto.h"
 #include "td/telegram/DraftMessageManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -28,6 +29,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/WebAppManager.h"
 #include "td/telegram/WebPageId.h"
@@ -678,6 +680,15 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
         if (!channel_id.is_regular_channel()) {
           td_->community_manager_->reload_community_full(CommunityId(channel_id.get()), std::move(promise),
                                                          "reload_photo");
+          break;
+        }
+      }
+      if (dialog_id.get_type() == DialogType::User) {
+        auto user_id = dialog_id.get_user_id();
+        const auto *dialog_photo = td_->user_manager_->get_user_dialog_photo(user_id);
+        if (dialog_photo != nullptr && dialog_photo->is_personal) {
+          // only full user info contains a downloadable location of the personal photo
+          td_->user_manager_->reload_user_full(user_id, std::move(promise), "reload_photo");
           break;
         }
       }
